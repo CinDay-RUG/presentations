@@ -1,0 +1,686 @@
+---
+title: "TextAnalytics"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: flatly
+    source: embed
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)                          ## flexdashboard
+library(tidyverse)                              ## niche R
+library(tidygraph)                              ## tidy graph manipulation
+library(ggraph)                                 ## grammar of graph graphics
+library(RColorBrewer)                           ## palettes
+library(tidyjson)                               ## building blocks for json
+library(foreach)                                ## iterative R
+library(purrr)                                  ## functional programming in R
+library(stringr)                                ## working w/ strings
+library(plotly)                                 ## interactive graphics in R
+library(lubridate)                              ## working with dates
+
+set.seed(88)
+
+source('build_dat.R')                           ## does what is commented out directly below
+# results_data <- read_rds('results_data.RDS')    ## results from Metacran
+# metrics <- read_rds('metrics.RDS')              ## results from packagemetrics
+# pkgtopics <- read_rds('pkg_topic_class.RDS')    ## results from topicmodels
+# dat <- read_rds('ecosystem_data.RDS')           ## combined & cleaned
+
+source('build_tg.R')                            ## does what is commented out directly below
+# tg <- read_rds('tg.RDS')                        ## results from miniCRAN 
+
+# ofInterest <- c('tm', 'tidytext', 'hunspell'    ## which 15 packages to highlight in our viz
+#                 , 'cleanNLP', 'openNLP'
+#                 , 'NLP', 'lda', 'topicmodels'
+#                 , 'koRpus', 'quanteda', 'tokenizers'
+#                 , 'ngram', 'wordcloud'
+#                 , 'purrr', 'Rcpp')
+# 
+dg_tbl <- dat %>%                               ## data to use; create labels for viz
+    distinct(package, .keep_all =T) %>%
+    mutate(highlights = ifelse(package %in% ofInterest, package, NA))
+```
+
+Setup 
+===============================================
+
+Column  {data-width=350}
+-----------------------------------------------
+
+```{r ecoplot, echo=FALSE, message=FALSE, warning=FALSE}
+# a tease plot for the talk
+tg %>%
+    activate(nodes) %>%                         ## work on nodes
+    left_join(., dg_tbl %>%                     ## bolster nodes for plotting
+                  select(package, topic, highlights)
+              , by = c('name' = 'package')) %>%
+    filter(!is.na(topic)) -> tg_topic           ## create obj
+
+tg_topic_plot <- tg_topic %>%                   ## create plot with query_class together
+    ggraph('mds') +                             ## igraph layout
+    geom_edge_arc(aes(color = type)             ## edit edges
+                  , alpha = .75
+                  , show.legend =F) +
+    geom_node_point(aes(color = as.factor(topic)) ## edit nodes
+                    , show.legend =F ) +
+    geom_node_text(aes(label = highlights)
+                   , size =4, repel =T) +       ## annotate
+    scale_color_brewer(palette = 'BuGn') +      ## palette
+    ggtitle('Existing Relationships\nBetween Text Analytics Packages') +
+    theme_graph(background = 'light grey'
+                , title_size = 22)              ## look
+
+tg_topic_plot
+```
+
+Column {.tabset .tabset-fade}  
+-----------------------------------------------  
+
+### Scope
+
+We will focus on the subjects of natural language processing (NLP) and text mining. We will identify a few frameworks, describe a continuum of use cases, and attempt to get you started in your first Text Analytics (TA) project.
+
+Though TA has been around for a number of years in `R`, we have seen expansive growth in both applications and package development in the last two years. TA projects often occupy several contradictory attitudes:
+
+* __Micro <- - -> Macro__
+    + We need to parse: characters, letters, words, ngrams, sentences, books, volumes etc. using tokenizers
+* __Dirty <- - -> Clean__
+    + We need to work with:  unstructured strings, json, batched .zip files, html, perhaps in different languages or represented in different flavors of ASCII/Unicode
+* __Weak <- - -> Powerful__
+    + We need to: count, summarize, calculate distances, create features, apply machine learning, send/receive using APIs
+
+_The purpose of this dashboard is to provide resources to analysts understand these attitudes, underlying frameworks, & use cases before diving too deep._
+
+### What is __not__ considered?
+
+* Is `R` the best programming language for Text Analytics?
+
+* The __too big for memory__ problem.
+
+* How to... anything. (_I am not an expert in Text Analytics_)
+
+* What __framework__ will win out?
+
+* Any comparable topic areas (in size & growth) in `R`?
+
+* Packages on `R-Forge`, `Bioconductor`, or `github` only
+
+* Much, much more.
+
+### Initial Setup
+
+<font size="20"> Packages</font>  
+
+```
+library(flexdashboard)                          ## flexdashboard
+library(tidyverse)                              ## niche R
+library(tidygraph)                              ## tidy graph manipulation
+library(ggraph)                                 ## grammar of graph graphics
+library(RColorBrewer)                           ## palettes
+library(tidyjson)                               ## building blocks for json
+library(foreach)                                ## iterative R
+library(purrr)                                  ## functional programming in R
+library(stringr)                                ## working w/ strings
+library(plotly)                                 ## interactive graphics in R
+library(lubridate)                              ## working with dates
+library(seer)                                   ## search metacran
+library(crandb)                                 ## query crandb
+```
+
+<font size="20"> Sourced Files</font>  
+
+```
+results_data <- read_rds('results_data.RDS')    ## results from Metacran
+metrics <- read_rds('metrics.RDS')              ## results from packagemetrics
+pkgtopics <- read_rds('pkg_topic_class.RDS')    ## results from topicmodels
+dat <- read_rds('ecosystem_data.RDS')           ## combined & cleaned
+tg <- read_rds('tg.RDS')                        ## results from miniCRAN 
+
+ofInterest <- c('tm', 'tidytext', 'hunspell'    ## packages to highlight
+                , 'cleanNLP', 'openNLP'
+                , 'NLP', 'lda', 'topicmodels'
+                , 'koRpus', 'quanteda', 'tokenizers'
+                , 'ngram', 'wordcloud'
+                , 'purrr', 'Rcpp')
+
+dg_tbl <- dat %>%                               ## data; create labels
+    distinct(package, .keep_all =T) %>%
+    left_join(., package_classification
+              , by = c('package' = 'document')) %>%
+    mutate(highlights = ifelse(package %in% ofInterest, package, NA))
+```
+
+Packages
+===============================================
+
+Column  {.tabset .tabset-fade}
+-----------------------------------------------
+
+### Task Views  
+
+`CRAN` allows for the organization of packages into __Task Views__ and this is one of the first stops you should make if you want to understand any topic's ecosystem!    
+
+* `CRAN`: https://cran.r-project.org/web/views/    
+
+* `MRAN`: https://mran.microsoft.com/taskview/info/?NaturalLanguageProcessing  
+
+* `Crantastic`: http://www.crantastic.org/task_views/NaturalLanguageProcessing    
+
+* `Metacran`: https://www.r-pkg.org/ctv/NaturalLanguageProcessing     
+
+
+### `ctv` Package 
+
+The following uses `ctv` to get a `list` of packages for `NaturalLanguageProcessing`:    
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+library(ctv)                                    ## CRAN Task Views
+
+rslts <- ctv::CRAN.views(repos='http://cran.us.r-project.org') %>% ## locate the global ctvlist
+    as.list() %>%                               ## convert to list
+    .[20] %>%                                   ## 20 represents NaturalLanguageProcessing
+    purrr::flatten(.)                           ## flatten
+
+nlp_pkgs <- rslts$packagelist$name %>% 
+    as.list()                                   ## pull name from df of packages; as a list
+
+nlp_pkgs[1:5]                                   ## first five packages
+
+rm(nlp, rslts)                                  ## declutter
+```
+How many packages are in `NaturalLanguageProcessing`?  
+
+```{r}
+length(nlp_pkgs)                                ## length
+```
+
+### So many Packages...
+
+![CRAN now has 10,000 R Packages - Jan. 2017](http://revolution-computing.typepad.com/.a/6a010534b1db25970b01b8d2594d25970c-800wi)
+
+
+### Metacran Database  
+
+`Metacran` maintains a database of `CRAN` Packages and offers a query capability. The code below uses the `nlp_pkgs` list to query the database and return the results as a data frame.    
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+library(seer)                                   ## search metacran
+library(crandb)                                 ## query crandb
+library(jsonlite)                               ## json
+
+source('cran_utils.R')                          ## helper functions to query crandb
+
+results <- DB_list_to_DF(nlp_pkgs) %>% 
+    select(-document.id) %>%
+    mutate(query_class = 'Task View')           ## query and return data frame of results
+
+glimpse(results)
+```
+
+### Query w/ `seer`   
+
+Let's combine and store three queries: `'text'`, `'text analytics'`, & `'natural language'` as `query_list`.  
+
+How many did each return?    
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+t <- seer::see('text', size = 1000)             ## search
+ta <- seer::see('text analytics', size = 1000)  ## search
+nlp <- seer::see('natural language', size = 1000) ## search
+
+## list
+query_list <- list(t, ta, nlp)                  ## build list
+
+purrr::map(query_list, function(x){             ## get total hits
+    x$hits$total
+})
+```
+
+```{r Growth Image, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# growth_data <- results_data %>%
+#     separate(date
+#              , c("date", "time")
+#              , sep = "T"
+#             ) %>%
+#     mutate(date = as.Date(date, format = "%Y-%m-%d")
+#            , date = floor_date(date, 'week')) %>%
+#     select(-time) %>%
+#     group_by(date, query_class) %>%
+#     summarize(n = sum(n())) %>%
+#     group_by(query_class) %>%
+#     mutate(csum = cumsum(n))
+# 
+# gg_three <- ggplot(growth_data, aes(x = date, y = csum)) +
+#     geom_line(aes(color = query_class))
+
+# ggsave(gg_three, filename = "nlp_growth.png", width = 4, height = 4, units = 'in')
+```
+
+### TA Package Growth 
+
+![Growth](nlp_growth.png)
+
+
+Frameworks
+===============================================
+
+Column  {.tabset .tabset-fade}
+-----------------------------------------------
+
+### Comparative Example: Document-Term Matrix
+
+A Document-Term Matrix is a mathematical representation of the frequency of terms per document. An approach generally:   
+
+* identifies a target text to split apart
+* splits it apart based on a set of rules
+* count the number of terms, represented by columns, per document
+* calculate summary statistics to help understand  
+
+### tm (plus qdap)
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+library(tm)
+# library(qdap) ## optional
+
+desc <- Corpus(VectorSource(dg_tbl$description))
+desc_dtm <- DocumentTermMatrix(desc)
+inspect(desc_dtm)
+```
+
+### quanteda
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+library(quanteda)
+
+desc <- quanteda::dfm(dg_tbl$description)
+desc_dtm <- convert(desc, 'tm')
+inspect(desc_dtm)
+```
+
+### tidytext
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+library(tidytext)
+
+desc <- dg_tbl %>% 
+    select(-topicterms) %>%
+    tidytext::unnest_tokens(., input = description
+                            , output = token) %>% 
+    count(package, token)
+
+desc_dtm <- desc %>% 
+    cast_dtm(., document = package
+             , term = token
+             , value = n)
+
+inspect(desc_dtm)
+```
+
+### cleanNLP
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+library(cleanNLP)
+cleanNLP::init_tokenizers(locale = 'en')
+# desc <- dg_tbl$description %>% run_annotators(as_strings =T) %>% get_token
+# saveRDS(desc, 'desc_clnnlp.rds')
+desc <- readr::read_rds('desc_clnnlp.rds')
+
+desc_dtm <- desc %>% group_by(id) %>% 
+    count(word) %>% ungroup %>%
+    tidytext::cast_dtm(., document = id
+             , term = word
+             , value = n)
+inspect(desc_dtm)
+```
+
+Results
+===============================================
+
+Column {.tabset .tabset-fade}
+-----------------------------------------------
+
+### Metacran
+
+```{r, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# ## helper function
+# ## get list of package names from query
+# 
+# query_pkgs <- purrr::map(query_list, get_package_names)  %>% unlist %>% unique
+# new_to_results <- query_pkgs[!query_pkgs %in% nlp_pkgs]
+# 
+# query_results <- DB_list_to_DF(new_to_results) %>% select(-document.id) %>%
+#     mutate(query_class = 'metacran')
+# 
+# results_data <- rbind(results, query_results) %>%
+#     separate(maintainer
+#              , c("maintainer", "email")
+#              , sep = " <"
+#             ) %>%
+#     select(-email)
+# 
+# saveRDS(results_data, 'results_data.RDS')
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+results_data <- readr::read_rds('results_data.RDS')
+
+DT::datatable(results_data, options = list(
+  pageLength = 40
+))
+```
+
+### packagemetrics  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+## `packagemetrics Dataset for pkgs 
+metrics_tbl <- readr::read_rds('metrics.RDS')   ## results from packagemetrics
+
+DT::datatable(metrics_tbl, options = list(
+  pageLength = 40
+))
+```
+
+### topicmodels  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+pkgtopics <- readr::read_rds('pkg_topic_class.RDS') ## sourced from
+
+DT::datatable(pkgtopics, options = list(
+    pageLength = 40
+))
+```
+
+Use Cases
+===============================================
+
+Column {.tabset .tabset-fade}
+-----------------------------------------------
+
+### Related Fields
+
+![Figure 2.1 - Practical Text Mining and Statistical Analysis for Non-Structured Text Data Applications
+G. Miner, D. Delen, J. Elder, A. Fast, T. Hill, and R. Nisbet, Elsevier, January 2012](relatedfields.png)
+
+### Seven Practice Areas
+
+![Figure 2.3 - Practical Text Mining and Statistical Analysis for Non-Structured Text Data Applications
+G. Miner, D. Delen, J. Elder, A. Fast, T. Hill, and R. Nisbet, Elsevier, January 2012](sevenareatasks.png)
+
+
+Ecosystem Plots {.storyboard}
+===============================================
+
+### Dependencies in TextAnalytics Packages by `query_class`
+
+```{r tg_mut_dep, message=FALSE, warning=FALSE, include=FALSE}
+## setup data
+tg %>% 
+    activate(edges) %>%                         ## work on edges
+    filter(type == 'Depends') %>%               ## filter on type
+    activate(nodes) %>%                         ## work on nodes
+    left_join(., dg_tbl %>%                     ## bolster nodes for plotting
+                  select(package, query_class, dl_last_month, highlights, stars)
+              , by = c('name' = 'package')) %>%
+    filter(!is.na(query_class)) -> tg_mut_dep   ## create obj
+```
+
+```{r tg_mut_dep_circle, echo=FALSE, message=FALSE, warning=FALSE, fig.width=10}
+## plot
+tg_mut_dep_circle <- tg_mut_dep %>%             ## create plot with query_class together
+    ggraph('linear', circular =T) +
+    geom_edge_arc(alpha = .25) +
+    geom_node_point(aes(color = query_class, size = dl_last_month)) +
+    geom_node_text(aes(label = highlights), size = 5, repel = T) +
+    theme_graph()
+
+tg_mut_dep_circle
+```
+
+***   
+
+`Task Views` only represent a small proportion of the overall packages in the ecosystem but have huge download numbers because of package dependencies.
+
+`Metacran` Packages are also seeing great traction in certain areas.
+
+### Dependencies again, with `stars` from github.
+
+```{r tg_mut_dep_cloud, echo=FALSE, message=FALSE, warning=FALSE, fig.width=10}
+tg_mut_dep_cloud <- tg_mut_dep %>%
+    ggraph('kk') +
+    geom_edge_density() +
+    geom_node_point(aes(color = query_class, size = stars)) +
+    geom_node_text(aes(label = highlights), size = 5, repel = T) +
+    theme_graph()
+
+tg_mut_dep_cloud
+```
+
+***  
+
+Stars represent `favorites` for github users.
+
+### All Relationships
+
+```{r tg_mut_all, message=FALSE, warning=FALSE, include=FALSE}
+tg %>% 
+    activate(nodes) %>%                         ## work on nodes
+    left_join(., dg_tbl %>%                     ## bolster nodes for plotting
+                  select(package, query_class, highlights, dl_last_month, stars)
+              , by = c('name' = 'package')) %>%
+    filter(!is.na(query_class)) -> tg_mut_all   ## create obj
+```
+
+```{r tg_mut_all_snail, echo=FALSE, fig.width=12, message=FALSE, warning=FALSE}
+## plot
+tg_mut_all_snail<- tg_mut_all %>%             ## create plot with query_class together
+    ggraph('linear', circular =F) +
+    geom_edge_arc(aes(color = type), alpha = .25) +
+    geom_node_point(aes(size = dl_last_month)) +
+    geom_node_text(aes(label = highlights), size = 4, repel = T) +
+    theme_graph()
+
+tg_mut_all_snail
+```
+
+### Relationships between Packages that Import Tidyverse Packages
+
+```{r tg_mut_tidy, message=FALSE, warning=FALSE, include=FALSE}
+tg %>% 
+    activate(nodes) %>%                         ## work on nodes
+    left_join(., dg_tbl %>%                     ## bolster nodes for plotting
+                  select(package, query_class
+                         , highlights, published
+                         , stars, tidyverse_happy)
+              , by = c('name' = 'package')) %>%
+    filter(!is.na(query_class)) -> tg_mut_tidy   ## create obj
+```
+
+```{r tg_mut_tidycloud, echo=FALSE, fig.width=14, message=FALSE, warning=FALSE}
+## plot
+tg_mut_tidycloud <- tg_mut_tidy %>%
+    ggraph('grid') +
+    geom_edge_density() +
+    geom_node_point(aes(color = tidyverse_happy), show.legend = T) +
+    geom_node_text(aes(label = highlights), size = 4, repel = T) +
+    theme_graph() +
+    facet_graph(~tidyverse_happy)
+
+tg_mut_tidycloud
+```
+
+### Packages by topic
+
+```{r tg_mut_topic, message=FALSE, warning=FALSE, include=FALSE}
+tg %>% 
+    activate(nodes) %>%                         ## work on nodes
+    # filter(name %in% ofInterest) %>%
+    left_join(., dg_tbl %>%                     ## bolster nodes for plotting
+                  select(package, query_class
+                         , highlights, published
+                         , stars, tidyverse_happy
+                         , has_vignette_build, maintainer
+                         , topic, topicterms)
+              , by = c('name' = 'package')) %>%
+    filter(!is.na(query_class)) -> tg_mut_topic   ## create obj
+```
+
+```{r tg_mut_topic_facet, echo=FALSE, fig.width=14, message=FALSE, warning=FALSE}
+tg_mut_topic_facet <- tg_mut_topic %>%
+    ggraph('grid') +
+    geom_edge_density() +
+    geom_node_point(aes(color = as.factor(as.character(topicterms)))) +
+    geom_node_text(aes(label = highlights)) +
+    facet_graph(~as.factor(topic)) +
+    theme_graph()
+
+tg_mut_topic_facet
+```
+
+### Top Authors
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+gg_one_dat <- results_tbl %>%
+    select(name, maintainer) %>%
+    group_by(maintainer) %>% 
+    count(sort =T) %>%
+    filter(n > 1) %>%
+    ungroup %>%
+    left_join(., results_tbl %>%
+                  group_by(maintainer) %>%
+                  do(pkgs = paste(.$name))) %>%
+    rowwise %>%
+    mutate(pkgs = unlist(pkgs) %>% paste(., collapse = ', '))
+```
+
+```{r gg_one, fig.width=12, message=FALSE, warning=FALSE}
+gg_one <- gg_one_dat %>%
+    filter(n >= 5) %>%
+    ggplot(aes(x = reorder(maintainer, n), y = n)) +
+    geom_bar(stat = 'identity') +
+    geom_text(aes(y = n-(n-1), label = pkgs), size = 3, color = 'white', hjust = 0.095) +
+    xlab('') +
+    ylab('Packages') +
+    coord_flip() +
+    theme_minimal()
+
+gg_one
+```
+
+### Downloads over Time
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+downloads <- readr::read_rds('downloads.RDS')
+```
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+download_data <- downloads %>% 
+    mutate(
+        date = floor_date(date, 'week')
+    ) %>%
+    group_by(query_class, date) %>%
+    summarize(mean = mean(count, na.rm =T)
+              , median = median(count, na.rm =T))
+```
+```{r gg_two, echo=FALSE, fig.width=14, message=FALSE, warning=FALSE}
+gg_two <- ggplot(download_data, aes(x = date, y = mean)) +
+    geom_line(aes(color = query_class))
+
+gg_two
+```
+
+### Suggests Count by Topic
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+dg_tbl %>% 
+    ggplot() +
+    geom_boxplot(aes(x = as.factor(topic), y = suggests_count
+                     , fill = query_class)) +
+    geom_label(aes(x = as.factor(topic), y = suggests_count, label = highlights)) +
+    scale_fill_brewer('BuGn') +
+    facet_wrap(~as.factor(topic), scales = 'free_x', ncol = 5)
+```
+
+### Reverse Count by Topic
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+dg_tbl %>% 
+    ggplot() +
+    geom_boxplot(aes(x = as.factor(topic), y = reverse_count
+                     , fill = query_class)) +
+    geom_label(aes(x = as.factor(topic), y = suggests_count, label = highlights)) +
+    scale_fill_brewer('BuGn') +
+    facet_wrap(~as.factor(topic), scales = 'free', ncol = 5)
+```
+
+Future
+===============================================
+
+Column {.tabset .tabset-fade}
+-----------------------------------------------
+
+### Shiny
+
+* How might we get a quick ecosystem snapshot via a TaskView and search query?
+* How might we build a quick tinder-like response dataset to match Users to packages?
+* How might we generate subsets of StackOverflow questions to deliver to first time users?
+
+### Packages
+
+* tools to classify CRAN Packages using topic modeling
+* widget to recommend packages based on code/script so far
+
+### Research  
+
+* other task view areas for comparison
+* all non task view packages
+* who's who in package development
+* scores for interopability
+`sos` package
+
+References 
+===============================================
+
+Row {.tabset .tabset-fade}
+-----------------------------------------------  
+
+### People
+
+* [Gabor Csardi](https://github.com/gaborcsardi) - METACRAN
+* [Andri de Vries](https://github.com/andrie)
+* [Ken Benoit](https://github.com/kbenoit) - quanteda
+* [Taylor Arnold](https://github.com/statsmaths) - cleanNLP
+* [David Robinson](https://github.com/dgrtwo) - tidytext
+* [Julia Silge](https://github.com/juliasilge) - tidytext
+* [Kurt Hornik](https://translate.google.com/translate?hl=en&sl=de&u=https://de.wikipedia.org/wiki/Kurt_Hornik&prev=search) - Godfather
+* [Tyler Rinker](https://github.com/trinker)
+* [Jereon Ooms](https://github.com/jeroen)
+* [Dmitriy Selivanov](https://github.com/dselivanov) - text2vec
+* [rOpenSci Text Workshop Participants](http://textworkshop17.ropensci.org/#participants)
+
+### Talks
+
+* [useR2017](https://channel9.msdn.com/Events/useR-international-R-User-conferences/useR-International-R-User-2017-Conference)  
+    + [tidytext](https://channel9.msdn.com/Events/useR-international-R-User-conferences/useR-International-R-User-2017-Conference/Text-mining-the-tidy-way)
+    + [Navigating R Packages](https://channel9.msdn.com/Events/useR-international-R-User-conferences/useR-International-R-User-2017-Conference/Navigating-the-R-package-universe)
+    + [untidy text analysis](https://channel9.msdn.com/Events/useR-international-R-User-conferences/useR-International-R-User-2017-Conference/Text-Analysis-and-Text-Mining-Using-R)
+    + [tidy text analysis](https://channel9.msdn.com/Events/useR-international-R-User-conferences/useR-International-R-User-2017-Conference/A-Tidy-Data-Model-for-Natural-Language-Processing)
+    + [intro to nlp pt. I](https://channel9.msdn.com/Events/useR-international-R-User-conferences/useR-International-R-User-2017-Conference/Introduction-to-Natural-Language-Processing-with-R)
+    + [intro to nlp pt. II](https://channel9.msdn.com/Events/useR-international-R-User-conferences/useR-International-R-User-2017-Conference/Introduction-to-Natural-Language-Processing-with-R-II)
+* Conversations
+    + [Package Interoperability](https://github.com/ropensci/textworkshop17/issues/2)
+    + [testworkshop17](https://github.com/ropensci/textworkshop17/issues)
+    + [Text Interchange Format](https://github.com/ropensci/tif)
+    + [Not always so in sync](https://github.com/dselivanov/text2vec/issues/146)
+
+### Links
+
+* [Network Graph Inspiration](https://www.slideshare.net/RevolutionAnalytics/the-network-structure-of-cran-2015-0702-final) 
+* [CRANsearcher](https://github.com/RhoInc/CRANsearcher)  
+* [Informs Article](https://www.informs.org/ORMS-Today/Public-Articles/June-Volume-39-Number-3/Text-analytics)
+* [Practical Text Mining...Excerpt](http://cdn2.hubspot.net/hubfs/2176909/Whitepaper_The_Seven_Practice_Areas_of_Text_Analytics_Chapter_2_Excerpt.pdf?t=1467833009120)
+* [Local Guide by UC_Rstats](http://uc-r.github.io/text_conversion)
+* [Globl Vectors](https://github.com/stanfordnlp/GloVe)
+* [quanteda quickstart](https://cran.r-project.org/web/packages/quanteda/vignettes/quickstart.html)
+* [text2vec](http://text2vec.org/api.html)
+* [nltk in Python](http://www.nltk.org/)
+* [qdap](http://trinker.github.io/qdap/vignettes/qdap_vignette.html)
+* [SpeedReader](https://github.com/matthewjdenny/SpeedReader)
+
+###############################################
+###############################################
