@@ -1,0 +1,154 @@
+---
+title: "Iconopurrrwafflely"
+subtitle: 'Pt I: Making Pretty Basic Waffles'
+output: 
+  html_notebook: 
+    fig_caption: yes
+    fig_width: 8
+    highlight: zenburn
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+author: Bill Felix
+date: October 3, 2017
+---
+
+# Setup: plugging in your wafflemaker
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)                      ## niche R
+library(waffle)                         ## wafflemaker
+library(extrafont)                      ## icon printer
+## at this point, it is important to note that you need to install the FontAwesome font on your machine
+## after downloading the zipfile, open and install fontawesome-webfront.tff
+
+loadfonts(device = "win") ## necessary for viewing in RStudio on Windows
+```
+
+# Waffles 101
+
+__Pro:__ Really cool right? Often taking the place of pie charts but without the 100% constraint.
+
+__Con:__ Comparing shapes is always tough.
+
+```{r}
+## use waffle() from library(waffle)
+## plot the ggplot2 object 
+(wfle <- waffle(c('Green'=5
+                  , 'Orange'=5
+                  , 'Blue'=15
+                  , 'Pink'=10
+                  , 'Lime'=4)
+                , title = 'Tasty, Colorful Waffles'
+                , xlab = '1 Square = 1 Waffle'
+                , rows = 4)
+)
+```
+
+## Deconstructed Waffles
+```{r}
+## where named integers form the most basic ingredients
+flour <- c('Green'=5)
+salt <- c('Orange'=5)
+baking_powder <- c('Blue'=15)
+sugar <- c('Pink'=10)
+vanilla_extract <- c('Lime'=4)
+
+## a vector of named numbers
+(mix <- c(flour, salt, baking_powder, sugar, vanilla_extract)
+)
+
+## plot
+(d_wfle <- waffle(mix
+                  , title = 'Tasty, Colorful Waffles'
+                  , xlab = '1 Square = 1 Waffle'
+                  , rows =4)
+)
+```
+
+# Plain Ol' Waffles with a Twist  
+
+Adding **glyphs** or **isotypes** to waffle charts allows for an almost infographic feel that can attract an audience. The viewers then can connect the data to objects in real life. Thanks to [waffle](https://github.com/hrbrmstr/waffle/blob/master/R/waffle.R) we have a quick, flexible tool to get these out in the world!
+
+`library(waffle)` is leveraging [Font Awesome](http://fontawesome.io/) for its icons. Loading `library(extrafont)` is necessary to get the icons to appear.  
+__Note:__ `loadfonts()` is necessary to view in `Rstudio`!
+
+[Font Awesome Cheatsheet](http://fontawesome.io/cheatsheet/) or `waffle::fa_list()` for help with icons.
+
+## Eggo Minis?
+```{r, message=FALSE, warning=FALSE}
+## use the built-in argument to reference FontAwesome and its icons
+(wfle2 <- waffle(c('Green'=5
+                  , 'Orange'=5
+                  , 'Blue'=15
+                  , 'Pink'=10
+                  , 'Lime'=4)
+                 , title = 'Tasty, Colorful Eggo Minis'
+                 , xlab = '1 Eggo Mini = 1 Waffle'
+                 , rows = 4
+                 , use_glyph = 'th-large'
+                 , glyph_size = 8)
+ )
+```
+
+## Were they a hit with your kids?
+```{r, message=FALSE, warning=FALSE}
+(wfle3 <- waffle(c('Green'=5
+                  , 'Orange'=5
+                  , 'Blue'=15
+                  , 'Pink'=10
+                  , 'Lime'=4)
+                 , rows = 4
+                 , use_glyph = 'thumbs-up'
+                 , glyph_size = 8)
+)
+```
+
+## Pictures make everything great right?
+
+Going overboard with icons can surely distract and this example exposes what the consequences of icon overload:
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+source('wfles_utils.R')                     ## edit of waffle() elements
+
+### Random Waffles
+## copy wfle3 and replace the fontlab vector that is supplied
+wfle4 <- wfle3
+fa_unicode_vector <- fa_unicode()
+
+## random sample of glyphs
+set.seed(77)
+n_fontlab <- sample(x = fa_unicode_vector
+                    , size = nrow(wfle3$data)
+                    , replace =T)
+
+## replace
+wfle4$data$fontlab <- n_fontlab
+(wfle4)
+```
+## Crazy useless?
+```{r}
+wfle5 <- wfle
+
+## replace
+set.seed(88)
+wfle5$data$value <- sample(wfle5$data$value)
+wfle5
+```
+
+
+# What have we made, really?
+
+```{r, message=FALSE, warning=FALSE}
+## library(waffle) has iron() for comparisons
+iron(
+  wfle
+  , wfle5
+)
+```
+
+# How could you make purrrfect waffles?
+
+[If time...](https://cran.r-project.org/web/packages/tidyverse/vignettes/manifesto.html)
+
+Continue on to [Pt II of Iconopurrrwafflely...](advwaffles.nb.html)

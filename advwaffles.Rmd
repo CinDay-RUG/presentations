@@ -1,0 +1,152 @@
+---
+title: "Iconopurrrwafflely"
+subtitle: 'Pt II: Making Purrrfect Waffles'
+output: 
+  html_notebook: 
+    fig_caption: yes
+    fig_width: 8
+    highlight: zenburn
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+author: Bill Felix
+date: October 3, 2017
+---
+
+# Setup: plugging in your wafflemaker
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)                      ## niche R
+library(waffle)                         ## wafflemaker
+library(extrafont)                      ## icon printer
+## at this point, it is important to note that you need to install the FontAwesome font on your machine
+## after downloading the zipfile, open and install fontawesome-webfront.tff
+
+loadfonts(device = "win") ## necessary for viewing in RStudio on Windows
+```
+
+# Waffles 501
+
+Let's say you tracked `Positive` & `Negative` posts from some `people` on various social `platforms` over the past month. How might you show this data?
+
+# Simulate Data
+```{r, echo=TRUE, message=FALSE, warning=FALSE, rows.print = 4}
+set.seed(66)
+
+## data setup
+people <- c('Diego', 'Inez', 'Sofia')
+platforms <- c('Instagram', 'Facebook', 'Twitter', 'Pinterest')
+types <- c('Positive', 'Negative')
+
+## use expand() to ensure all possible combinations
+(dat <- data_frame() %>% expand(., person = people
+                                , type = types
+                                , platform = platforms) %>%
+        rowwise() %>%
+        mutate(total = sample(1:10, 1, replace =T))  ## create a random sample for total posts
+)
+
+## meta data about platforms
+(wfle_dat <- data_frame(
+  platform = platforms
+  , color = c('#8a3ab9', '#3b5998', '#0084b4', '#C92228')
+  , glyph = c('instagram', 'facebook', 'twitter', 'pinterest'))
+)
+```
+
+## Join the two dataframes
+```{r, echo=TRUE, message=FALSE, warning=FALSE, rows.print = 4}
+(join_df <- left_join(dat, wfle_dat)
+)
+```
+
+# do() method for rowwise plots
+```{r, echo=TRUE, message=FALSE, warning=FALSE, rows.print = 4}
+## by grouping the data when we send the parameters to waffle() we end up with a ggplot2 object per row
+## the '.$' notation is tricky but so very important
+(foo <- join_df %>% 
+     group_by(person, type) %>%
+     do(waffle = waffle(set_names(.$total, .$platform)
+                     , rows = 4
+                     , title = paste0(.$person, '-' , .$type)
+                     , use_glyph = .$glyph
+                     , color = .$color))
+)
+```
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+map(foo$waffle[1:2], class)
+```
+
+# helper functions
+## Personal Iron Function
+### pull a person's waffle
+```{r, message=FALSE, warning=FALSE, fig.width=5, fig.height=3.5}
+(diego <- foo %>% filter(person == 'Diego') %>% dplyr::pull(waffle))
+```
+### waffle ironing with purrr
+```{r, message=FALSE, warning=FALSE, fig.width=5, fig.height=3.5}
+walk(diego, iron) ## silently irons
+```
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE, fig.width=5, fig.height=3.5}
+personal_iron <- function(x){
+  y <- foo %>% filter(person == x) %>% dplyr::pull(waffle)
+  walk(y, iron)
+}
+
+## print just the third element of people
+walk(people[3], personal_iron)
+```
+
+## Fix the Padding!
+```{r}
+## find the highest x in a ggplot
+get_max_x_range <- function(x){
+    plot_x_high = ggplot_build(x)$layout$panel_ranges[[1]]$x.range %>% pluck(., 2) %>% max
+    unlist(plot_x_high) 
+}
+
+## what is the global max?
+plot_max <- map(foo$waffle, get_max_x_range) %>% reduce(., max)
+
+## what is the local max?
+vec <- map(as.list(foo$waffle), get_max_x_range) %>% unlist %>% as.vector
+
+## build a vector to cbind to join_df (24 observations)
+padding <- rep(plot_max - vec, each = 4)
+```
+
+## do() to the rescue
+```{r}
+## new dataset
+(food <- join_df %>%
+     add_column(padding = padding) %>% 
+     group_by(person, type) %>%
+     do(waffle = waffle(set_names(.$total, .$platform)
+                     , rows = 4
+                     , title = paste0(.$person, '-' , .$type)
+                     , use_glyph = .$glyph
+                     , color = .$color
+                     , pad = .$padding))
+)
+```
+```{r, fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+personal_iron <- function(x){
+  y <- food %>% filter(person == x) %>% dplyr::pull(waffle)
+  walk(y, iron)
+}
+walk(people, personal_iron)
+```
+
+## Type Iron Function
+```{r, message=FALSE, warning=FALSE, fig.width=5, fig.height=3.5}
+type_iron <- function(x){
+  y <- food %>% filter(type == x) %>% dplyr::pull(waffle)
+  walk(y, iron)
+}
+
+walk(pluck(types, 2), type_iron)
+```
+
+
+
