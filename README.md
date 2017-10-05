@@ -34,9 +34,9 @@ Coming soon...
 
 ## Admin
 
-- [**Bill Felix**](https://github.com/bill-felix) - *Github CinDay-RUG organization owner*
+- [**Bill Felix**](https://github.com/bill-felix) - *CinDay-RUG Github organization owner*
 
-__Please contact me via [a pull request](https://github.com/CinDay-RUG/presentations/pulls) or through [meetup.com]((https://www.meetup.com/CinDay-RUG/)) to join!__
+__Please contact me via [a pull request](https://github.com/CinDay-RUG/presentations/pulls) or through [meetup.com](https://www.meetup.com/CinDay-RUG/) to join!__
 
 ## License
 
