@@ -1,0 +1,57 @@
+---
+title: "Juxtaposed `iris`"
+output: 
+  html_notebook: 
+    code_folding: hide
+    highlight: pygments
+    theme: simplex
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+library(tidyverse)
+# devtools::install_github('cttobin/ggthemr')
+library(ggthemr)
+ggthemr('dust')
+data(iris)
+```
+
+```{r}
+library(synthpop)
+
+## compare
+compare(synth_big_strange_iris, iris
+        , vars = 'Species', cols = c('#db735c', '#EFA86E'))
+```
+
+
+
+```{r Compare, message=FALSE, warning=FALSE, paged.print=FALSE}
+## add source to sets & stack
+iris_kclust$Source <- 'orig'
+big_iris_kclust$Source <- 'syn'
+big_strange_iris_kclust$Source <- 'syn_strange'
+
+## list to bind
+ls <- list(iris_kclust, big_iris_kclust, big_strange_iris_kclust)
+
+comp_big_iris <- rbind_all(ls)
+
+## get the misses
+comp_big_iris <- comp_big_iris %>% 
+  mutate(miss = ifelse(Species == 'versicolor' & .cluster == 1, 0
+                  , ifelse(Species == 'setosa' & .cluster == 2, 0
+                      , ifelse(Species == 'virginica' & .cluster == 3, 0
+                               , 1))))
+
+set.seed(3)
+
+## plot
+ggplot(comp_big_iris, aes(x = Petal.Width, y = Sepal.Width
+                          , color = .cluster)) +
+  geom_point() +
+  facet_grid(Source~Species) +
+  theme_minimal()
+```
+
+
+

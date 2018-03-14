@@ -1,0 +1,398 @@
+---
+title: "Pre-data Mindset "
+output:
+  html_notebook: 
+    code_folding: hide
+    highlight: pygments
+    theme: simplex
+---
+
+#####The `Pre-data Mindset` is invaluable when crafting your future analyses. Let's tell a story about graduate students picking flowers across the country... We'll focus on __two__ characters, __150__ flowers, and a few pieces of __never-before-seen__ data from their adventures.  
+
+##### Dr. Fisher's _star_ grad students `Javier` and `Patrice` were entrusted to collect biological specimens across the country to further the understanding of Species identification. The plan was simple; observe and collect `iris` species from __late-spring to early-fall__ in __three regions across the US__. 
+
+```{r start, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+library(tidyverse)            ## niche r
+# devtools::install_github('cttobin/ggthemr')
+
+library(ggthemr)              ## themes for ggplot2
+ggthemr('dust')               ## theme
+
+library(DT)                   ## print tables
+
+data(iris)                    ## data
+
+set.seed(99)
+n = nrow(iris)
+k = length(unique(iris$Species))
+```
+
+********
+## Appending Simple Data
+##### In our first example we will craft a simplistic dataset. Illustrating a few data points below:  
+
+* On a return visit home, `Javier` was struck by the beauty of one particular `iris setosa`. Enough so that he decided to start his research right then and there in the month of `January`.
+* `Patrice`, while visiting her friend in `Pennsylvania`, faltered as well. A lovely `iris versicolor` caught her eye while hiking in the Poconos Mountains.   
+
+
+>##`wakefield`  
+>__Authors:__ Tyler Rinker  
+>__Purpose:__ Fast, fake data.  
+>__Outlook:__ A little awkward to manipulate, but if you need fast, fake data might as well try to make it work.  
+>[...on github](https://github.com/trinker/wakefield)  
+
+********
+```{r wakefield, message=FALSE, warning=FALSE}
+library(wakefield)            ## append basic data
+set.seed(55)
+
+## quickly add ID, State, Month to `iris`
+extra_iris <- wakefield::r_data_frame(
+  n = 150                     ## choose how many you want
+  , ID = id 
+  , State = state(x = datasets::state.abb) ## so-so self-explanatory functions
+  , Month = month(x = month.abb)) %>%
+  as_data_frame %>%
+  cbind(iris)
+
+## example
+extra_iris %>% ggplot(aes(Petal.Width, Sepal.Width
+                          , color = Species
+                          , label = State)) +
+  ## print State Abbreviation
+  geom_text() +
+  ## per Month
+  facet_wrap(~Month)
+```
+```{r}
+## add observedBy
+set.seed(77)
+extra_iris <- extra_iris %>% 
+  mutate(observedBy = rep(qc(Javier, Patrice), each = nrow(.)/2)
+         , observedBy = sample(observedBy, size = nrow(.), replace =F))
+```
+
+#####These flowers were to delightful to not include in their research!  In doing so, they have seriously undermined the research methodology. Now that's a story.
+
+##_Looking for a couple more like this, check out_:
+>##`charlatan`  
+>__Authors:__ `ropensci`  
+>__Purpose:__ Dedicated to help quickly create random, fake data.  
+>__Outlook:__ While the functions are limited at this point. This package has a lot of room for growth and might just end up being the simple solution we all need.  
+>[...on github](https://github.com/ropensci/charlatan)
+
+```{r charlatan, echo=TRUE, message=FALSE, warning=FALSE}
+# library(charlatan)            # create fake data
+# set.seed(33)
+# 
+# ## generate random colors
+# charlatan::ch_color_name(n = 5)
+# 
+# [1] "PowderBlue"       "LavenderBlush"    "MediumAquaMarine" "SaddleBrown"     
+# [5] "DeepSkyBlue"  
+```
+
+>##`generator`  
+>__Authors:__ Paul Hendricks  
+>__Purpose:__ Generate data containing fake Personally Identifiable Information (PII) in R  
+>__Outlook:__ Good implementation of PII data types  
+>[...on github](https://github.com/paulhendricks/generator)
+
+```{r}
+# library(generator)
+# set.seed(33)
+# 
+# ## generate full name, latitude, and longitude
+# df <- 5 %>% data.frame(
+#   fullName = r_full_names(.)
+#   , lat = r_latitudes(.)
+#   , lon = r_longitudes(.)
+# ) %>% walk(print)
+# 
+# [1] 5 5 5 5 5
+# [1] Johnetta Collier Lizette Little   Rob Waelchi      Odilia Goodwin   Connie Von      
+# Levels: Connie Von Johnetta Collier Lizette Little Odilia Goodwin Rob Waelchi
+# [1] -30.76168 -64.57607  20.57121 -21.40592  47.76493
+# [1]  122.06990   63.75203 -128.81066   26.43362  154.43893
+```
+
+>##`randNames`  
+>__Authors:__ Karthik Ram  
+>__Purpose:__ Useful data types, generated randomly.  
+>__Outlook:__ At its best in the Tidyverse  
+>[...on github](https://github.com/karthik/randNames)
+
+```{r randNames, echo=TRUE, message=FALSE, warning=FALSE}
+# library(randNames)           # create fake data
+# set.seed(33)
+# 
+# ## generate random names, date of births, cities, and image.paths
+# randNames::rand_names(n = 10, nationality = 'US', gender = 'female') %>% 
+#   select(name.first,name.last, dob, location.city, picture.thumbnail) %>% walk(print)
+# # [1] "jeanne"  "jenny"   "allison" "jane"    "brianna" "diane"   "jill"    "sherry" 
+# #  [9] "dora"    "irene"  
+# #  [1] "hernandez" "gardner"   "alexander" "burns"     "morgan"    "mills"     "parker"   
+# #  [8] "nelson"    "morales"   "peck"     
+# #  [1] "1973-10-04 17:53:23" "1984-09-22 19:38:01" "1959-05-05 02:17:44"
+# #  [4] "1981-03-14 23:48:53" "1994-07-30 01:21:41" "1986-01-29 11:40:39"
+# #  [7] "1979-03-12 11:23:57" "1982-04-07 08:18:12" "1979-07-28 20:02:21"
+# # [10] "1972-11-27 22:14:11"
+# #  [1] "el paso"         "odessa"          "north las vegas" "torrance"       
+# #  [5] "chesapeake"      "irving"          "elgin"           "broken arrow"   
+# #  [9] "chattanooga"     "nampa"          
+# #  [1] "https://randomuser.me/api/portraits/thumb/women/10.jpg"
+# #  [2] "https://randomuser.me/api/portraits/thumb/women/91.jpg"
+# #  [3] "https://randomuser.me/api/portraits/thumb/women/7.jpg" 
+# #  [4] "https://randomuser.me/api/portraits/thumb/women/90.jpg"
+# #  [5] "https://randomuser.me/api/portraits/thumb/women/15.jpg"
+# #  [6] "https://randomuser.me/api/portraits/thumb/women/50.jpg"
+# #  [7] "https://randomuser.me/api/portraits/thumb/women/74.jpg"
+# #  [8] "https://randomuser.me/api/portraits/thumb/women/69.jpg"
+# #  [9] "https://randomuser.me/api/portraits/thumb/women/6.jpg" 
+# # [10] "https://randomuser.me/api/portraits/thumb/women/83.jpg"
+```
+
+********  
+# Appending Not-So-Simple Data
+##### In our second example we will craft a simple dataset using complex methods. Illustrating a few items below:  
+
+* _Only_ `iris virginica` was observed in `Mar` & `Apr`
+* No specimens were observed outside the `Mar` - `Sep` timeframe
+
+
+>## `foreach`  
+>__Authors:__ Rich Calaway  
+>__Purpose:__ For loops, for real.  
+>__Outlook:__ Big implications, but difficult to grasp with added complexity.  
+>[...on github](https://github.com/cran/foreach)  
+
+********
+```{r foreach, message=FALSE, warning=FALSE}
+library(foreach)              # for loops
+library(wrapr)                # helpful quoting
+
+set.seed(6)
+
+## function to generate probabilities based on list length
+get_probs <- function(j){
+  set <- sample(1:20, j, replace =T)
+  probs <- map(set, ~.x/sum(set))
+  probs
+}
+
+# ls <- c(2, 3, 4)
+# (map(ls, get_probs))
+
+## use get_probs to sample one element from lists
+get_element <- function(ls){
+  len <- length(ls)
+  sample(ls, 1, prob = get_probs(len))
+}
+
+# arch <- qc(Loos, Corbusier, Neutra)
+# (df <- foreach(1:8, .combine = rbind) %do% get_element(arch))
+
+set.seed(1)
+
+## collections
+region <- qc(midwest, northwest, southeast)
+season <- qc(early.summer, summer, early.fall)
+palette <- qc(cm.colors, heat.colors, all)
+
+extras <- list(region, season, palette)
+
+## create a reference
+species_criteria <- foreach(qc(setosa, virginica, versicolor), .combine = cbind) %do% 
+  map(extras, get_element) %>% 
+  as.tibble
+
+## organize the information
+colnames(species_criteria) <- qc(setosa, virginica, versicolor)
+rownames(species_criteria) <- qc(region, season, palette)
+
+glimpse(species_criteria)
+```
+
+```{r data supply, message=FALSE, warning=FALSE}
+## lists to supply data
+
+## states by region
+states <- list(midwest = qc(MI, OH, IN, KY)
+               , northwest = qc(CA, OR, ID, WA, MT)
+               , southeast = qc(FL))
+
+## months by season
+months <- list(early.summer = qc(Mar, Apr, May, Jun)
+               , summer = qc(May, Jun, Jul)
+               , early.fall = qc(Aug, Sep))
+
+## helper levels
+month_levels <- c(
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+)
+
+## colors by palette
+colors <- list(cm.colors = cm.colors(6)
+               , heat.colors = heat.colors(3)
+               , all = rainbow(20))
+```
+
+```{r get_data, message=FALSE, warning=FALSE}
+## get varying results by Species
+get_data <- function(Species){
+  store <- species_criteria[Species]
+  
+  ## get_state
+  pos_states = states[unlist(store[1,1])]
+  State <- get_element(unlist(pos_states))
+  
+  ## get_month
+  pos_month = months[unlist(store[2,1])]
+  Month <- get_element(unlist(pos_month))
+  
+  ## get_color
+  pos_color = colors[unlist(store[3,1])]
+  Color <- get_element(unlist(pos_color))
+  
+  append <- tibble(State=State, Month=Month, Color=Color)
+  append
+}
+```
+
+
+```{r}
+looped_iris <- iris %>% foreach(1:n, .combine = cbind) %do%
+  map(as.character(iris$Species), get_data) %>% 
+  cbind(iris) %>% 
+  dplyr::select(-result.2) %>%
+  unnest() %>%
+  mutate(Month = factor(Month, levels = month_levels))
+
+## example
+looped_iris %>% ggplot(aes(Petal.Width, Sepal.Width
+                          , color = Species
+                          , label = State)) +
+  ## print State Abbreviation
+  geom_text() +
+  ## per Month
+  facet_wrap(~Month)
+```
+
+******** 
+# A Simplified, Complex Append  
+##### In our third example we will craft a simple dataset using complex methods. Illustrating the item below:  
+
+* The items from the second example are still true  
+* A relationship exists between flower color and region  
+
+>##`fabricatr` | `randomizr` | `estimatr`  
+>__Authors:__ `DeclareDesign`  
+>__Purpose:__ Tools for Research Design  
+>__Outlook:__  For a real Research Design practitioner.  
+>[...on github](https://github.com/DeclareDesign/fabricatr)  
+
+********
+```{r declaredesign, message=FALSE, warning=FALSE}
+# install.packages("fabricatr", dependencies = TRUE,
+#                  repos = c("http://r.declaredesign.org", "https://cloud.r-project.org"))
+library(fabricatr)
+
+## joined data
+as.data.frame(t(species_criteria)) %>% 
+  rownames_to_column(var = 'Species') %>%
+  right_join(., iris) %>%
+  mutate(region = as.factor(unlist(region))
+         , season = as.factor(unlist(season))
+         , palette = as.factor(unlist(palette))) -> criteria_iris
+
+set.seed(44)
+
+## get a normally distributed categorical variable based on defined group
+fab_iris <- fabricate(
+  data = criteria_iris
+    , group_id = criteria_iris$region
+    , color = draw_normal_icc(mean = 0, N = N, clusters = group_id, ICC = 0.9)
+    ) %>% filter(!is.na(color))
+
+## attach meaningful label
+fab_iris <- fabricate(
+  data = fab_iris
+  , color_label = draw_ordered(
+    x = color
+    , breaks = c(-Inf, -4, -2, 0, 2, 4, Inf)
+    , break_labels = colors$cm.colors
+  )
+)   
+```
+
+```{r message=FALSE, warning=FALSE}
+library(skimr)
+skim(fab_iris %>% dplyr::select(region, color) %>% group_by(region))
+# skim(fab_iris %>% dplyr::select(Species, region, color) %>% group_by(region, Species))
+```
+
+```{r}
+## example
+fab_iris %>% ggplot(aes(Petal.Width, Sepal.Width
+                        , color = color_label)) +
+  geom_point() +
+  scale_color_identity() +
+  ## per Species
+  facet_grid(~Species) +
+  theme_dark()
+```
+
+## Let's Take This Version of `iris` Through a Data Science Routine
+#### Use Case: K-means Clusters
+
+```{r kmeans, message=FALSE, warning=FALSE}
+## get clusters using kmeans 
+## we know are expecting 3 Species
+set.seed(88)
+
+## create model
+kclust <- fab_iris %>% 
+  dplyr::select(Petal.Width, Petal.Length
+                , Sepal.Width, Sepal.Length
+                , color) %>% 
+  kmeans(centers=3, nstart=10)
+
+## create dataframe with factors; use broom
+library(broom)                #working with model data
+iris_kclust <- augment(kclust, iris)
+
+## plot
+ggplot(iris_kclust, aes(x=Petal.Width, y=Sepal.Width
+                        , color=.cluster)) + 
+  geom_point() +
+  facet_wrap(~Species)
+```
+
+## Benchmark Tables
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+comp_iris_kclust <- iris_kclust %>% 
+  mutate(miss = ifelse(Species == 'versicolor' & .cluster == 1, 0
+                  , ifelse(Species == 'setosa' & .cluster == 2, 0
+                      , ifelse(Species == 'virginica' & .cluster == 3, 0
+                          , 1)))
+         , group = paste0(Species,':',miss))
+```
+
+### Missed Classifications
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+xtabs(~ Species + .cluster, comp_iris_kclust %>% filter(miss == 1))
+```
+
+### Percantage of Missed Classifications
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+comp_iris_kclust %>% group_by(Species, miss) %>% 
+  summarize(n = n()) %>%
+  mutate(perc = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  filter(miss == 1) %>% data.frame()
+```
+
+
+
+

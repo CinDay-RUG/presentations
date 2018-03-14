@@ -1,0 +1,79 @@
+---
+title: "Familiar `iris`"
+output:
+  html_notebook:
+    code_folding: hide
+    highlight: pygments
+    theme: simplex
+  html_document:
+    df_print: paged
+---
+
+```{r lib, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+library(tidyverse)            #niche R
+# devtools::install_github('cttobin/ggthemr')
+library(ggthemr)
+ggthemr('dust')
+data(iris)
+```
+
+## Get Familiar with the Data Again
+```{r look, echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+summary(iris)
+
+library(skimr)                #improved summary
+skim(iris)
+```
+
+
+## Let's Take `iris` Through a Data Science Routine
+#### Use Case: K-means Clusters
+
+```{r kmeans, message=FALSE, warning=FALSE}
+## get clusters using kmeans 
+## we know are expecting 3 Species
+set.seed(88)
+
+## create model
+kclust <- iris %>% dplyr::select(-Species) %>% 
+  kmeans(centers=3, nstart=10)
+
+## create dataframe with factors; use broom
+library(broom)                #working with model data
+iris_kclust <- augment(kclust, iris)
+
+## plot
+ggplot(iris_kclust, aes(x=Petal.Width, y=Sepal.Width
+                        , color=.cluster)) + 
+  geom_point() +
+  facet_wrap(~Species)
+```
+
+
+## Benchmark Tables
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+comp_iris_kclust <- iris_kclust %>% 
+  mutate(miss = ifelse(Species == 'versicolor' & .cluster == 1, 0
+                  , ifelse(Species == 'setosa' & .cluster == 2, 0
+                      , ifelse(Species == 'virginica' & .cluster == 3, 0
+                          , 1)))
+         , group = paste0(Species,':',miss))
+```
+
+### Missed Classifications
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+xtabs(~ Species + .cluster, comp_iris_kclust %>% filter(miss == 1))
+```
+
+### Percantage of Missed Classifications
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+comp_iris_kclust %>% group_by(Species, miss) %>% 
+  summarize(n = n()) %>%
+  mutate(perc = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  filter(miss == 1) %>% data.frame()
+```
+
+
+
+

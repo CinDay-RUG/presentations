@@ -1,0 +1,79 @@
+---
+title: "Big `iris`"
+output:
+  html_notebook: 
+    code_folding: hide
+    highlight: pygments
+    theme: simplex
+---
+
+```{r lib, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+library(tidyverse)
+# devtools::install_github('cttobin/ggthemr')
+library(ggthemr)
+ggthemr('dust')
+data(iris)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+library(synthpop)
+
+(synth_big_iris <- iris %>% 
+    syn(., seed = 88
+        , k = 1000
+        , m = 10))
+```
+
+
+```{r look, message=FALSE, warning=FALSE, paged.print=TRUE}
+big_iris <- rbind_all(synth_big_iris$syn)
+
+library(skimr)
+skim(big_iris)
+```
+
+```{r kmeans, message=FALSE, warning=FALSE}
+## get clusters using kmeans 
+## we know are expecting 3 Species
+set.seed(88)
+
+## create model
+kclust <- big_iris %>% dplyr::select(-Species) %>%
+  kmeans(centers=3, nstart=10)
+
+## create dataframe with factors; use broom
+library(broom)
+big_iris_kclust <- augment(kclust, big_iris)
+
+## plot
+ggplot(big_iris_kclust, aes(x=Petal.Width, y=Sepal.Width
+                            , color=.cluster)) + 
+  geom_point() +
+  facet_wrap(~Species)
+```
+
+## Benchmark Tables
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+comp_iris_kclust <- big_iris_kclust %>% 
+  mutate(miss = ifelse(Species == 'versicolor' & .cluster == 1, 0
+                  , ifelse(Species == 'setosa' & .cluster == 2, 0
+                      , ifelse(Species == 'virginica' & .cluster == 3, 0
+                          , 1)))
+         , group = paste0(Species,':',miss))
+```
+
+### Missed Classifications
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+xtabs(~ Species + .cluster, comp_iris_kclust %>% filter(miss == 1))
+```
+
+### Percantage of Missed Classifications
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+comp_iris_kclust %>% group_by(Species, miss) %>% 
+  summarize(n = n()) %>%
+  mutate(perc = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  filter(miss == 1) %>% data.frame()
+```
+
+
